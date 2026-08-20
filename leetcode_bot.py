@@ -88,80 +88,85 @@ def graphql_request(session: requests.Session, query: str, variables: dict, oper
 
 # ─── Fetch Solved Problems ───────────────────────────────────────────────────
 
-SOLVED_QUERY = """
-query problemsetQuestionListV2(
-    $filters: QuestionFilterInput, $limit: Int, $skip: Int,
-    $sortBy: QuestionSortByInput, $categorySlug: String
-) {
-    problemsetQuestionListV2(
-        filters: $filters, limit: $limit, skip: $skip,
-        sortBy: $sortBy, categorySlug: $categorySlug
-    ) {
-        questions {
-            id
-            titleSlug
-            title
-            questionFrontendId
-            difficulty
-            status
-            acRate
-            paidOnly
-        }
-        totalLength
-        hasMore
-    }
-}
-"""
+SUBMISSIONS_URL = "https://leetcode.com/api/submissions/"
 
 def fetch_solved_problems(session: requests.Session) -> list:
-    """Fetch all problems the user has solved (AC status)."""
+    """Fetch solved problems from the user's LeetCode submission history."""
+    print("Fetching your LeetCode submissions...")
+
     all_solved = []
-    skip = 0
-    limit = 100
+    seen_slugs = set()
+    offset = 0
+    limit = 20
 
     while True:
-        variables = {
-            "skip": skip,
-            "limit": limit,
-            "categorySlug": "all-code-essentials",
-            "filters": {
-                "filterCombineType": "ALL",
-                "statusFilter": {
-                    "questionStatuses": ["AC"],
-                    "operator": "IS",
-                },
-            },
-            "sortBy": {"sortField": "CUSTOM", "sortOrder": "ASCENDING"},
-        }
-        data = graphql_request(session, SOLVED_QUERY, variables, "problemsetQuestionListV2")
-        questions = data["data"]["problemsetQuestionListV2"]["questions"]
-        has_more = data["data"]["problemsetQuestionListV2"]["hasMore"]
+        url = f"{SUBMISSIONS_URL}?offset={offset}&limit={limit}"
 
-        for q in questions:
+        resp = session.get(url, timeout=30)
+        resp.raise_for_status()
+
+        data = resp.json()
+        submissions = data.get("submissions_dump", [])
+
+        if not submissions:
+            break
+
+        accepted_count = 0
+
+        for sub in submissions:
+            if sub.get("status_display") != "Accepted":
+                continue
+
+            slug = sub.get("title_slug")
+            if not slug or slug in seen_slugs:
+                continue
+
+            seen_slugs.add(slug)
+            accepted_count += 1
+
             all_solved.append({
-                "question_id": q["id"],
-                "frontend_id": q["questionFrontendId"],
-                "title": q["title"],
-                "title_slug": q["titleSlug"],
-                "difficulty": q["difficulty"],
-                "paid_only": q["paidOnly"],
+                "question_id": sub.get("question_id"),
+                "frontend_id": sub.get("frontend_id"),
+                "title": sub.get("title"),
+                "title_slug": slug,
+                "difficulty": None,
+                "paid_only": False,
             })
 
-        print(f"  Fetched {len(all_solved)} solved problems so far...")
+        print(
+            f"  Offset {offset}: {len(submissions)} submissions, "
+            f"{accepted_count} Accepted, "
+            f"{len(all_solved)} unique solved problems"
+        )
 
-        if not has_more:
+        if not data.get("has_next"):
             break
-        skip += limit
-        time.sleep(1)  # be polite
 
-    # Save to file
+        next_offset = offset + len(submissions)
+
+        if next_offset <= offset:
+            print("  Pagination did not advance; stopping safely.")
+            break
+
+        offset = next_offset
+        time.sleep(0.5)
+
     with open(SOLVED_FILE, "w") as f:
-        json.dump({"fetched_at": datetime.now(IST).isoformat(), "problems": all_solved}, f, indent=2)
+        json.dump(
+            {
+                "fetched_at": datetime.now(IST).isoformat(),
+                "problems": all_solved,
+            },
+            f,
+            indent=2,
+        )
 
-    print(f"Saved {len(all_solved)} solved problems to {SOLVED_FILE.name}")
+    print(
+        f"Saved {len(all_solved)} unique solved problems "
+        f"to {SOLVED_FILE.name}"
+    )
+
     return all_solved
-
-
 # ─── Get Daily Challenge ─────────────────────────────────────────────────────
 
 DAILY_QUERY = """
@@ -310,26 +315,86 @@ def already_submitted_today(log: list) -> bool:
 # ─── Commands ─────────────────────────────────────────────────────────────────
 
 def cmd_submit(args):
-    """Submit one random easy problem from the solution bank."""
+    """Submit one random unsolved problem from the solution bank."""
+
     session = get_session()
     log = load_submission_log()
 
+    # Safety: require explicit confirmation for a real submission.
+    if not args.confirm:
+        print("Submission NOT sent.")
+        print("Run with --confirm when you are ready to submit.")
+        return
+
     if already_submitted_today(log) and not args.force:
-        print(f"Already submitted today ({get_today_str()}). Use --force to submit again.")
+        print(
+            f"Already submitted today ({get_today_str()}). "
+            "Use --force to submit again."
+        )
         return
 
     solutions = load_solutions()
 
-    # Prefer problems not submitted recently
-    recent_slugs = {e["title_slug"] for e in log[-10:]} if log else set()
-    candidates = [s for s in solutions if s["title_slug"] not in recent_slugs]
+    # Load problems already solved on LeetCode.
+    solved = []
+    if SOLVED_FILE.exists():
+        try:
+            with open(SOLVED_FILE) as f:
+                solved_data = json.load(f)
+            solved = solved_data.get("problems", [])
+        except (json.JSONDecodeError, OSError):
+            print("Warning: Could not read solved_problems.json.")
+
+    solved_ids = {
+        str(p.get("question_id"))
+        for p in solved
+        if p.get("question_id") is not None
+    }
+
+    solved_slugs = {
+        p.get("title_slug")
+        for p in solved
+        if p.get("title_slug")
+    }
+
+    recent_slugs = {
+        e.get("title_slug")
+        for e in log[-10:]
+        if e.get("title_slug")
+    }
+
+    candidates = [
+        s for s in solutions
+        if str(s.get("question_id")) not in solved_ids
+        and s.get("title_slug") not in solved_slugs
+        and s.get("title_slug") not in recent_slugs
+    ]
+
     if not candidates:
-        candidates = solutions
+        print("No eligible unsolved problems remain.")
+        return
 
     pick = random.choice(candidates)
-    print(f"Picked: #{pick['question_id']} {pick['title']} ({pick['difficulty']})")
 
-    result = submit_solution(session, pick["title_slug"], pick["question_id"], pick["lang"], pick["typed_code"])
+    print(f"Solutions in bank: {len(solutions)}")
+    print(f"Already solved: {len(solved)}")
+    print(f"Recently submitted by bot: {len(recent_slugs)}")
+    print(f"Eligible candidates: {len(candidates)}")
+    print()
+    print("Selected problem:")
+    print(f"  #{pick['question_id']} {pick['title']} ({pick['difficulty']})")
+    print(f"  Slug: {pick['title_slug']}")
+    print("  This problem is not in solved_problems.json.")
+    print()
+    print(f"Submitting {pick['title_slug']} ({pick['lang']})...")
+
+    result = submit_solution(
+        session,
+        pick["title_slug"],
+        pick["question_id"],
+        pick["lang"],
+        pick["typed_code"],
+    )
 
     log.append({
         "date": get_today_str(),
@@ -343,7 +408,14 @@ def cmd_submit(args):
         "runtime": result.get("runtime"),
         "memory": result.get("memory"),
     })
+
     save_submission_log(log)
+
+    print(
+        f"Result: {result.get('status', 'unknown')} | "
+        f"Runtime: {result.get('runtime')} | "
+        f"Memory: {result.get('memory')}"
+    )
     print("Done!")
 
 
@@ -481,6 +553,11 @@ def main():
 
     p_submit = sub.add_parser("submit", help="Submit one random easy problem")
     p_submit.add_argument("--force", action="store_true", help="Submit even if already done today")
+    p_submit.add_argument(
+        "--confirm",
+        action="store_true",
+        help="Actually submit the selected problem",
+    )
     p_submit.set_defaults(func=cmd_submit)
 
     p_daily = sub.add_parser("daily", help="Submit the daily challenge or fallback")
