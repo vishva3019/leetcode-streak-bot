@@ -45,6 +45,6 @@ jobs:
         run: |
           git config user.name "leetcode-streak-bot"
           git config user.email "actions@github.com"
-          git add solved_problems.json submission_log.json
+          git add -f solved_problems.json submission_log.json
           git diff --cached --quiet || git commit -m "Update LeetCode bot state"
           git push
