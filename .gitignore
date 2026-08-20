@@ -2,3 +2,5 @@
 solved_problems.json
 submission_log.json
 __pycache__/
+.DS_Store
+*.pyc

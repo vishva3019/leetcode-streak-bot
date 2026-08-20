@@ -457,7 +457,7 @@ def cmd_scheduler(args):
             print(f"  ERROR: {e}")
 
     # Schedule at 00:30 IST (= 19:00 UTC previous day)
-    schedule.every().day.at("19:00").do(daily_job)  # 19:00 UTC = 00:30 IST
+    schedule.every().day.at("00:30").do(daily_job)  # 19:00 UTC = 00:30 IST
 
     # Also run immediately if not submitted today
     log = load_submission_log()
