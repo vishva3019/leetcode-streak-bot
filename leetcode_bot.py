@@ -91,7 +91,11 @@ def graphql_request(session: requests.Session, query: str, variables: dict, oper
 SUBMISSIONS_URL = "https://leetcode.com/api/submissions/"
 
 def fetch_solved_problems(session: requests.Session) -> list:
-    """Fetch solved problems from the user's LeetCode submission history."""
+    """Fetch solved problems from the user's LeetCode submission history.
+
+    If LeetCode blocks pagination, abort rather than returning an
+    incomplete solved-problem list.
+    """
     print("Fetching your LeetCode submissions...")
 
     all_solved = []
@@ -102,10 +106,37 @@ def fetch_solved_problems(session: requests.Session) -> list:
     while True:
         url = f"{SUBMISSIONS_URL}?offset={offset}&limit={limit}"
 
-        resp = session.get(url, timeout=30)
+        try:
+            resp = session.get(url, timeout=30)
+        except requests.RequestException as exc:
+            raise RuntimeError(
+                f"Unable to fetch LeetCode submissions at offset {offset}: {exc}"
+            ) from exc
+
+        if resp.status_code == 403:
+            raise RuntimeError(
+                "LeetCode returned HTTP 403 while fetching submission "
+                f"history at offset {offset}. "
+                "The solved-problem list is incomplete, so the bot will "
+                "not continue."
+            )
+
+        if resp.status_code == 429:
+            raise RuntimeError(
+                f"LeetCode rate-limited the submission-history request "
+                f"at offset {offset}. The solved-problem list is incomplete, "
+                "so the bot will not continue."
+            )
+
         resp.raise_for_status()
 
-        data = resp.json()
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise RuntimeError(
+                f"LeetCode returned invalid JSON at offset {offset}."
+            ) from exc
+
         submissions = data.get("submissions_dump", [])
 
         if not submissions:
@@ -118,6 +149,7 @@ def fetch_solved_problems(session: requests.Session) -> list:
                 continue
 
             slug = sub.get("title_slug")
+
             if not slug or slug in seen_slugs:
                 continue
 
@@ -145,11 +177,16 @@ def fetch_solved_problems(session: requests.Session) -> list:
         next_offset = offset + len(submissions)
 
         if next_offset <= offset:
-            print("  Pagination did not advance; stopping safely.")
-            break
+            raise RuntimeError(
+                "LeetCode pagination did not advance. "
+                "The solved-problem list is incomplete, so the bot "
+                "will not continue."
+            )
 
         offset = next_offset
-        time.sleep(0.5)
+
+        # Avoid hammering the endpoint.
+        time.sleep(1)
 
     with open(SOLVED_FILE, "w") as f:
         json.dump(

@@ -2,7 +2,6 @@ name: LeetCode Streak Bot
 
 on:
   workflow_dispatch:
-
   schedule:
     - cron: "30 0 * * *"
       timezone: "Asia/Kolkata"
@@ -10,7 +9,6 @@ on:
 jobs:
   leetcode:
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
 
@@ -28,15 +26,12 @@ jobs:
 
       - name: Create environment
         run: |
-          cat > .env <<EOF
+          cat > .env <<EOF2
           LEETCODE_SESSION=${{ secrets.LEETCODE_SESSION }}
           CSRF_TOKEN=${{ secrets.CSRF_TOKEN }}
           CF_CLEARANCE=${{ secrets.CF_CLEARANCE }}
           LEETCODE_USERNAME=${{ secrets.LEETCODE_USERNAME }}
-          EOF
-
-      - name: Fetch solved problems
-        run: python leetcode_bot.py fetch-solved
+          EOF2
 
       - name: Submit daily problem
         run: python leetcode_bot.py submit --confirm
@@ -45,6 +40,6 @@ jobs:
         run: |
           git config user.name "leetcode-streak-bot"
           git config user.email "actions@github.com"
-          git add -f solved_problems.json submission_log.json
+          git add solved_problems.json submission_log.json
           git diff --cached --quiet || git commit -m "Update LeetCode bot state"
           git push

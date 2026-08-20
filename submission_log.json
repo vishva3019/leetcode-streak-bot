@@ -1,0 +1,14 @@
+[
+  {
+    "date": "2026-08-21",
+    "timestamp": "2026-08-21T00:18:52.331443+05:30",
+    "question_id": "83",
+    "title": "Remove Duplicates from Sorted List",
+    "title_slug": "remove-duplicates-from-sorted-list",
+    "difficulty": "Easy",
+    "lang": "python3",
+    "status": "Accepted",
+    "runtime": "3 ms",
+    "memory": "19.3 MB"
+  }
+]

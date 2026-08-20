@@ -1,0 +1,165 @@
+{
+  "fetched_at": "2026-08-21T01:21:08.498844+05:30",
+  "problems": [
+    {
+      "question_id": 70,
+      "frontend_id": 23,
+      "title": "Climbing Stairs",
+      "title_slug": "climbing-stairs",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 83,
+      "frontend_id": 22,
+      "title": "Remove Duplicates from Sorted List",
+      "title_slug": "remove-duplicates-from-sorted-list",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 125,
+      "frontend_id": 21,
+      "title": "Valid Palindrome",
+      "title_slug": "valid-palindrome",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 58,
+      "frontend_id": 20,
+      "title": "Length of Last Word",
+      "title_slug": "length-of-last-word",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 345,
+      "frontend_id": 19,
+      "title": "Reverse Vowels of a String",
+      "title_slug": "reverse-vowels-of-a-string",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 434,
+      "frontend_id": 18,
+      "title": "Number of Segments in a String",
+      "title_slug": "number-of-segments-in-a-string",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 171,
+      "frontend_id": 17,
+      "title": "Excel Sheet Column Number",
+      "title_slug": "excel-sheet-column-number",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 217,
+      "frontend_id": 15,
+      "title": "Contains Duplicate",
+      "title_slug": "contains-duplicate",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 283,
+      "frontend_id": 14,
+      "title": "Move Zeroes",
+      "title_slug": "move-zeroes",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 268,
+      "frontend_id": 13,
+      "title": "Missing Number",
+      "title_slug": "missing-number",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 66,
+      "frontend_id": 12,
+      "title": "Plus One",
+      "title_slug": "plus-one",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 2557,
+      "frontend_id": 11,
+      "title": "Number of Subarrays With LCM Equal to K",
+      "title_slug": "number-of-subarrays-with-lcm-equal-to-k",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 2106,
+      "frontend_id": 10,
+      "title": "Find Greatest Common Divisor of Array",
+      "title_slug": "find-greatest-common-divisor-of-array",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 400,
+      "frontend_id": 9,
+      "title": "Nth Digit",
+      "title_slug": "nth-digit",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 168,
+      "frontend_id": 7,
+      "title": "Excel Sheet Column Title",
+      "title_slug": "excel-sheet-column-title",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 7,
+      "frontend_id": 5,
+      "title": "Reverse Integer",
+      "title_slug": "reverse-integer",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 279,
+      "frontend_id": 4,
+      "title": "Perfect Squares",
+      "title_slug": "perfect-squares",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 507,
+      "frontend_id": 3,
+      "title": "Perfect Number",
+      "title_slug": "perfect-number",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 9,
+      "frontend_id": 2,
+      "title": "Palindrome Number",
+      "title_slug": "palindrome-number",
+      "difficulty": null,
+      "paid_only": false
+    },
+    {
+      "question_id": 258,
+      "frontend_id": 1,
+      "title": "Add Digits",
+      "title_slug": "add-digits",
+      "difficulty": null,
+      "paid_only": false
+    }
+  ]
+}
