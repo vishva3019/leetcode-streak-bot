@@ -225,61 +225,160 @@ def fetch_problem_detail(session: requests.Session, title_slug: str) -> dict:
 
 # ─── Submit Solution ──────────────────────────────────────────────────────────
 
-def submit_solution(session: requests.Session, title_slug: str, question_id: str, lang: str, code: str) -> dict:
+def submit_solution(
+    session: requests.Session,
+    title_slug: str,
+    question_id: str,
+    lang: str,
+    code: str
+) -> dict:
     """Submit a solution and wait for the verdict."""
+
     url = SUBMIT_URL.format(slug=title_slug)
-    session.headers["Referer"] = f"https://leetcode.com/problems/{title_slug}/"
+
+    # LeetCode requires the CSRF token for authenticated POST requests.
+    csrf_token = os.getenv("CSRF_TOKEN", "").strip()
+
+    if not csrf_token:
+        print("ERROR: CSRF_TOKEN is missing.")
+        return {
+            "status": "error",
+            "message": "CSRF_TOKEN is missing"
+        }
+
+    # Make the request look like a normal browser request.
+    session.headers.update({
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/128.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        "Origin": "https://leetcode.com",
+        "Referer": f"https://leetcode.com/problems/{title_slug}/",
+        "X-CSRFToken": csrf_token,
+        "x-csrftoken": csrf_token,
+        "X-Requested-With": "XMLHttpRequest",
+    })
+
+    # Make sure the CSRF cookie is also present.
+    session.cookies.set(
+        "csrftoken",
+        csrf_token,
+        domain="leetcode.com",
+        path="/"
+    )
 
     payload = {
         "lang": lang,
-        "question_id": question_id,
+        "question_id": str(question_id),
         "typed_code": code,
     }
 
     print(f"  Submitting {title_slug} ({lang})...")
-    resp = session.post(url, json=payload, timeout=30)
+
+    resp = session.post(
+        url,
+        json=payload,
+        timeout=30
+    )
+
+    if resp.status_code == 403:
+        print("  ERROR: LeetCode returned HTTP 403 Forbidden.")
+        print("  Submission was NOT accepted.")
+        print(f"  Response: {resp.text[:500]}")
+        return {
+            "status": "error",
+            "message": "HTTP 403 Forbidden",
+            "http_status": 403
+        }
 
     if resp.status_code == 429:
-        print("  Rate limited! Waiting 30s...")
+        print("  Rate limited! Waiting 30 seconds...")
         time.sleep(30)
-        resp = session.post(url, json=payload, timeout=30)
+
+        resp = session.post(
+            url,
+            json=payload,
+            timeout=30
+        )
 
     resp.raise_for_status()
-    submission_id = resp.json().get("submission_id")
+
+    try:
+        response_data = resp.json()
+    except ValueError:
+        print(f"  ERROR: Invalid JSON response: {resp.text[:500]}")
+        return {
+            "status": "error",
+            "message": resp.text
+        }
+
+    submission_id = response_data.get("submission_id")
 
     if not submission_id:
-        print(f"  ERROR: No submission_id returned. Response: {resp.text}")
-        return {"status": "error", "message": resp.text}
+        print(
+            "  ERROR: No submission_id returned. "
+            f"Response: {resp.text[:500]}"
+        )
+        return {
+            "status": "error",
+            "message": resp.text
+        }
 
-    # Poll for result
+    print(f"  Submission ID: {submission_id}")
+
+    # Poll for the final result.
     check_url = CHECK_URL.format(id=submission_id)
-    for attempt in range(20):
-        time.sleep(2 + attempt)  # progressive backoff
-        check_resp = session.get(check_url, timeout=30)
-        check_resp.raise_for_status()
-        result = check_resp.json()
 
+    for attempt in range(20):
+        time.sleep(2 + attempt)
+
+        check_resp = session.get(
+            check_url,
+            timeout=30
+        )
+
+        if check_resp.status_code == 403:
+            print("  ERROR: HTTP 403 while checking submission.")
+            return {
+                "status": "error",
+                "message": "HTTP 403 while checking submission",
+                "http_status": 403
+            }
+
+        check_resp.raise_for_status()
+
+        result = check_resp.json()
         state = result.get("state")
+
         if state == "SUCCESS":
             status_msg = result.get("status_msg", "Unknown")
             runtime = result.get("status_runtime", "N/A")
             memory = result.get("status_memory", "N/A")
-            print(f"  Result: {status_msg} | Runtime: {runtime} | Memory: {memory}")
+
+            print(
+                f"  Result: {status_msg} | "
+                f"Runtime: {runtime} | "
+                f"Memory: {memory}"
+            )
+
             return {
                 "status": status_msg,
                 "runtime": runtime,
                 "memory": memory,
-                "submission_id": submission_id,
             }
-        elif state == "PENDING" or state == "STARTED":
-            print(f"  Waiting for result... (attempt {attempt + 1})")
-        else:
-            print(f"  Unexpected state: {state} — {result}")
-            return {"status": "error", "state": state, "raw": result}
 
-    print("  Timed out waiting for result.")
-    return {"status": "timeout", "submission_id": submission_id}
+        print(
+            f"  Waiting for result... "
+            f"attempt {attempt + 1}/20"
+        )
 
+    return {
+        "status": "timeout",
+        "message": "Submission result polling timed out"
+    }
 
 # ─── Solution Bank ────────────────────────────────────────────────────────────
 
