@@ -10,5 +10,17 @@
     "status": "Accepted",
     "runtime": "3 ms",
     "memory": "19.3 MB"
+  },
+  {
+    "date": "2026-08-22",
+    "timestamp": "2026-08-22T00:50:14.521006+05:30",
+    "question_id": "303",
+    "title": "Range Sum Query - Immutable",
+    "title_slug": "range-sum-query-immutable",
+    "difficulty": "Easy",
+    "lang": "python3",
+    "status": "Accepted",
+    "runtime": "3 ms",
+    "memory": "22.9 MB"
   }
 ]
