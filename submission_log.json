@@ -22,5 +22,17 @@
     "status": "Accepted",
     "runtime": "3 ms",
     "memory": "22.9 MB"
+  },
+  {
+    "date": "2026-08-23",
+    "timestamp": "2026-08-23T00:47:21.330622+05:30",
+    "question_id": "141",
+    "title": "Linked List Cycle",
+    "title_slug": "linked-list-cycle",
+    "difficulty": "Easy",
+    "lang": "python3",
+    "status": "Accepted",
+    "runtime": "53 ms",
+    "memory": "22.4 MB"
   }
 ]
